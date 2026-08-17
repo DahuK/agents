@@ -1,0 +1,126 @@
+# ############################################################################
+# #                                                                          #
+# #   DELIBERATELY VULNERABLE TEST FIXTURE - DO NOT MERGE TO master           #
+# #                                                                          #
+# #   Purpose: verify that the `actions` CodeQL language and zizmor actually  #
+# #   report the CI-specific vulnerability classes we care about.             #
+# #                                                                          #
+# #   WHY THIS IS SAFE ON A TOPIC BRANCH, AND ONLY ON A TOPIC BRANCH:         #
+# #                                                                          #
+# #   1. `pull_request_target` workflows are always taken from the base       #
+# #      repository's DEFAULT branch. A pull_request_target definition that   #
+# #      lives only on a topic branch is therefore inert - GitHub will never  #
+# #      load it. The moment this file reaches master it becomes a real,      #
+# #      exploitable pwn-request vector.                                      #
+# #   2. Every job is additionally gated behind `if: false`, so nothing runs  #
+# #      even if a trigger were somehow to match.                            #
+# #                                                                          #
+# #   Delete this branch once the scanner output has been reviewed.           #
+# #                                                                          #
+# ############################################################################
+
+name: zz INSECURE fixture (never runs)
+
+on:
+  # zizmor: dangerous-triggers | CodeQL: privileged context via pull_request_target
+  pull_request_target:
+    types: [opened, synchronize]
+  issue_comment:
+    types: [created]
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+# zizmor: excessive-permissions | CodeQL: workflow does not restrict permissions
+permissions: write-all
+
+jobs:
+  pwn-request:
+    name: checkout untrusted code in a privileged context
+    # Runtime guard: never true, so the job is always skipped. Written as an
+    # expression rather than `if: false` because zizmor treats a statically
+    # false job as unreachable and skips auditing its steps.
+    if: ${{ github.repository == 'openkruise-fixture/never-matches' }}
+    runs-on: ubuntu-latest
+    steps:
+      # zizmor: artipacked (no persist-credentials: false)
+      # zizmor: unpinned-uses (tag instead of a SHA)
+      # CodeQL: checkout of untrusted code in a privileged context (critical)
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      # CodeQL: untrusted checkout TOCTOU / artifact poisoning
+      # The privileged job builds attacker-controlled code with secrets in env.
+      - name: Build the pull request head
+        run: make build
+        env:
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PWD }}
+
+  script-injection:
+    name: code injection via template expansion
+    if: ${{ github.repository == 'openkruise-fixture/never-matches' }}
+    runs-on: ubuntu-latest
+    steps:
+      # zizmor: template-injection | CodeQL: code injection (critical)
+      # Attacker controls the PR title and the issue comment body verbatim.
+      - name: Greet the contributor
+        run: |
+          echo "Reviewing: ${{ github.event.pull_request.title }}"
+          echo "Comment was: ${{ github.event.comment.body }}"
+          echo "Branch: ${{ github.event.pull_request.head.ref }}"
+
+      # zizmor: github-env | CodeQL: environment variable built from
+      # user-controlled sources (critical)
+      - name: Persist the value into the job environment
+        run: echo "PR_TITLE=${{ github.event.pull_request.title }}" >> "$GITHUB_ENV"
+
+      # CodeQL: PATH environment variable built from user-controlled sources
+      - name: Extend PATH from request data
+        run: echo "${{ github.event.pull_request.head.ref }}/bin" >> "$GITHUB_PATH"
+
+  secret-exposure:
+    name: secrets written to logs and artifacts
+    if: ${{ github.repository == 'openkruise-fixture/never-matches' }}
+    runs-on: ubuntu-latest
+    steps:
+      # zizmor: insecure-commands
+      - name: Re-enable deprecated unsecured commands
+        run: echo "nothing"
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+
+      # CodeQL: unmasked secret exposure / excessive secrets exposure
+      - name: Print the credential
+        run: |
+          echo "token is ${{ secrets.GITHUB_TOKEN }}"
+          echo "${{ toJSON(secrets) }}" > /tmp/all-secrets.json
+
+      # CodeQL: storage of sensitive information in a GitHub Actions artifact
+      - uses: actions/upload-artifact@v4
+        with:
+          name: leaked
+          path: /tmp/all-secrets.json
+
+  supply-chain:
+    name: unpinned and ad-hoc dependencies
+    if: ${{ github.repository == 'openkruise-fixture/never-matches' }}
+    # zizmor: self-hosted-runner (untrusted code on a persistent runner)
+    runs-on: self-hosted
+    steps:
+      # zizmor: unpinned-uses (mutable major-version tags)
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      # zizmor: adhoc-packages (install outside any lockfile, unverified source)
+      - name: Install tooling from the network
+        run: |
+          curl -fsSL https://example.invalid/install.sh | bash
+          go install example.invalid/some/tool@latest
+
+      # zizmor: bot-conditions (github.actor is spoofable)
+      - name: Trust anything that claims to be Dependabot
+        if: github.actor == 'dependabot[bot]'
+        run: make release

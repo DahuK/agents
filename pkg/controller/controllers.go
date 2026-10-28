@@ -20,6 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/openkruise/agents/pkg/controller/commit"
+	"github.com/openkruise/agents/pkg/controller/policyproposal"
 	"github.com/openkruise/agents/pkg/controller/poolautoscaler"
 	"github.com/openkruise/agents/pkg/controller/sandbox"
 	"github.com/openkruise/agents/pkg/controller/sandboxclaim"
@@ -37,6 +38,11 @@ type Deps struct {
 	// RuntimeTLSBundle is the client TLS bundle for reaching TLS-capable
 	// agent-runtimes. Nil disables runtime TLS for the whole process.
 	RuntimeTLSBundle *runtimeclient.TLSBundle
+	// PolicyProposalAllowUnenforceable disables the PolicyProposal
+	// controller's restricted REST/L7 publication gate. Only enable it for
+	// preview deployments: approved proposals then publish documents the
+	// data plane does not enforce.
+	PolicyProposalAllowUnenforceable bool
 }
 
 func SetupWithManager(m manager.Manager, deps Deps) error {
@@ -60,6 +66,11 @@ func SetupWithManager(m manager.Manager, deps Deps) error {
 		return err
 	}
 	if err := poolautoscaler.Add(m, sbxMaxPendingTimeout); err != nil {
+		return err
+	}
+	if err := policyproposal.Add(m, policyproposal.Options{
+		AllowUnenforceable: deps.PolicyProposalAllowUnenforceable,
+	}); err != nil {
 		return err
 	}
 	return nil

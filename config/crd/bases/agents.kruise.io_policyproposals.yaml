@@ -1,0 +1,607 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: policyproposals.agents.kruise.io
+spec:
+  group: agents.kruise.io
+  names:
+    kind: PolicyProposal
+    listKind: PolicyProposalList
+    plural: policyproposals
+    singular: policyproposal
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.securityProfileRef
+      name: Profile
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.decision.action
+      name: Decision
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          PolicyProposal is an agent-submitted amendment to the OpenShell policy
+          embedded in a SecurityProfile, following OpenShell's policy advisor loop:
+          the agent's overreach is denied with next_steps, it files a narrowed
+          proposal, risk checks are recorded, and an operator ruling merges the
+          approved document back into the profile.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              PolicyProposalSpec describes an agent-submitted amendment to the OpenShell
+              policy embedded in a SecurityProfile. The wire shapes mirror OpenShell's
+              PolicyMergeOperation protobuf so proposals authored against the OpenShell
+              governance loop (deny -> propose -> approve) map onto this resource without
+              translation.
+            properties:
+              operations:
+                description: |-
+                  Operations is the ordered batch of merge operations to apply to the
+                  embedded document. Exactly one operation must be set per entry.
+                items:
+                  description: |-
+                    PolicyMergeOperation is one OpenShell PolicyMergeOperation. Exactly one of
+                    the six operations must be set; the controller rejects anything else.
+                  properties:
+                    addAllowRules:
+                      description: AddAllowRules appends allow rules to an existing
+                        endpoint.
+                      properties:
+                        rules:
+                          description: Rules are the L7 rules to append.
+                          items:
+                            description: |-
+                              PolicyL7Rule is one L7 rule in the flattened OKA wire form. The embedded
+                              document keeps OpenShell's single-key {"allow"|"deny": {...}} form; this
+                              type is the authoring surface for proposals.
+                            properties:
+                              action:
+                                description: Action is the rule outcome.
+                                enum:
+                                - allow
+                                - deny
+                                type: string
+                              method:
+                                description: Method is the HTTP method, "*" for any
+                                  method; empty matches any.
+                                maxLength: 16
+                                type: string
+                              path:
+                                description: |-
+                                  Path is the request path: exact match, a prefix match when it ends with
+                                  "/**", or any path when empty.
+                                maxLength: 2048
+                                type: string
+                            required:
+                            - action
+                            type: object
+                          maxItems: 256
+                          minItems: 1
+                          type: array
+                          x-kubernetes-list-type: atomic
+                        target:
+                          description: |-
+                            Target identifies the endpoint the rules append to. OpenShell's target
+                            also scopes by ports/binaries/path; this projection scopes by the
+                            endpoint's host:port within the named policy.
+                          properties:
+                            host:
+                              description: Host of the target endpoint.
+                              maxLength: 253
+                              minLength: 1
+                              type: string
+                            port:
+                              description: Port of the target endpoint.
+                              format: int32
+                              maximum: 65535
+                              minimum: 1
+                              type: integer
+                            ruleName:
+                              description: RuleName is the network_policies map key.
+                              maxLength: 63
+                              minLength: 1
+                              type: string
+                          required:
+                          - host
+                          - port
+                          - ruleName
+                          type: object
+                      required:
+                      - rules
+                      - target
+                      type: object
+                    addDenyRules:
+                      description: AddDenyRules appends deny rules to an existing
+                        endpoint.
+                      properties:
+                        rules:
+                          description: Rules are the L7 rules to append.
+                          items:
+                            description: |-
+                              PolicyL7Rule is one L7 rule in the flattened OKA wire form. The embedded
+                              document keeps OpenShell's single-key {"allow"|"deny": {...}} form; this
+                              type is the authoring surface for proposals.
+                            properties:
+                              action:
+                                description: Action is the rule outcome.
+                                enum:
+                                - allow
+                                - deny
+                                type: string
+                              method:
+                                description: Method is the HTTP method, "*" for any
+                                  method; empty matches any.
+                                maxLength: 16
+                                type: string
+                              path:
+                                description: |-
+                                  Path is the request path: exact match, a prefix match when it ends with
+                                  "/**", or any path when empty.
+                                maxLength: 2048
+                                type: string
+                            required:
+                            - action
+                            type: object
+                          maxItems: 256
+                          minItems: 1
+                          type: array
+                          x-kubernetes-list-type: atomic
+                        target:
+                          description: |-
+                            Target identifies the endpoint the rules append to. OpenShell's target
+                            also scopes by ports/binaries/path; this projection scopes by the
+                            endpoint's host:port within the named policy.
+                          properties:
+                            host:
+                              description: Host of the target endpoint.
+                              maxLength: 253
+                              minLength: 1
+                              type: string
+                            port:
+                              description: Port of the target endpoint.
+                              format: int32
+                              maximum: 65535
+                              minimum: 1
+                              type: integer
+                            ruleName:
+                              description: RuleName is the network_policies map key.
+                              maxLength: 63
+                              minLength: 1
+                              type: string
+                          required:
+                          - host
+                          - port
+                          - ruleName
+                          type: object
+                      required:
+                      - rules
+                      - target
+                      type: object
+                    addNetworkRule:
+                      description: |-
+                        AddNetworkRule adds a new whole network_policies entry. Adding an
+                        existing name is rejected: OpenShell merges same-named entries, and this
+                        controller does not approximate that merge.
+                      properties:
+                        binaries:
+                          description: |-
+                            Binaries restricts which binaries may use the endpoints. Parsed for
+                            document fidelity; enforcement arrives with the per-binary phase.
+                          items:
+                            description: PolicyBinaryRef references a binary that
+                              may use an endpoint.
+                            properties:
+                              path:
+                                description: Path is the absolute path or glob of
+                                  the permitted binary.
+                                maxLength: 4096
+                                minLength: 1
+                                type: string
+                            required:
+                            - path
+                            type: object
+                          maxItems: 64
+                          type: array
+                          x-kubernetes-list-type: atomic
+                        endpoints:
+                          description: Endpoints is the entry's host:port endpoint
+                            list.
+                          items:
+                            description: PolicyEndpoint mirrors the OpenShell NetworkEndpoint
+                              wire shape.
+                            properties:
+                              access:
+                                description: |-
+                                  Access is "full", "read-only", or "read-write", mirroring
+                                  OpenShell's access presets. An omitted value means no preset.
+                                enum:
+                                - full
+                                - read-only
+                                - read-write
+                                type: string
+                              enforcement:
+                                description: |-
+                                  Enforcement is "enforce" or "audit". The restricted enforcement
+                                  contract requires an explicit "enforce": OpenShell treats an omitted
+                                  value as audit, and the two must not be silently conflated.
+                                enum:
+                                - enforce
+                                - audit
+                                type: string
+                              host:
+                                description: Host is the destination hostname.
+                                maxLength: 253
+                                minLength: 1
+                                type: string
+                              port:
+                                description: Port is the destination port.
+                                format: int32
+                                maximum: 65535
+                                minimum: 1
+                                type: integer
+                              protocol:
+                                description: |-
+                                  Protocol is the L7 protocol. Only "rest" is evaluated by the
+                                  restricted enforcement contract; other protocols are rejected for
+                                  enforce-ready publication rather than approximated.
+                                maxLength: 32
+                                type: string
+                              rules:
+                                description: Rules are the ordered L7 allow/deny rules;
+                                  deny rules take precedence.
+                                items:
+                                  description: |-
+                                    PolicyL7Rule is one L7 rule in the flattened OKA wire form. The embedded
+                                    document keeps OpenShell's single-key {"allow"|"deny": {...}} form; this
+                                    type is the authoring surface for proposals.
+                                  properties:
+                                    action:
+                                      description: Action is the rule outcome.
+                                      enum:
+                                      - allow
+                                      - deny
+                                      type: string
+                                    method:
+                                      description: Method is the HTTP method, "*"
+                                        for any method; empty matches any.
+                                      maxLength: 16
+                                      type: string
+                                    path:
+                                      description: |-
+                                        Path is the request path: exact match, a prefix match when it ends with
+                                        "/**", or any path when empty.
+                                      maxLength: 2048
+                                      type: string
+                                  required:
+                                  - action
+                                  type: object
+                                maxItems: 256
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            required:
+                            - host
+                            - port
+                            type: object
+                          maxItems: 64
+                          minItems: 1
+                          type: array
+                          x-kubernetes-list-type: atomic
+                        ruleName:
+                          description: RuleName is the network_policies map key.
+                          maxLength: 63
+                          minLength: 1
+                          type: string
+                      required:
+                      - endpoints
+                      - ruleName
+                      type: object
+                    removeNetworkBinary:
+                      description: RemoveNetworkBinary removes a binary binding from
+                        a network policy.
+                      properties:
+                        binaryPath:
+                          description: BinaryPath is the bound binary path to remove.
+                          maxLength: 4096
+                          minLength: 1
+                          type: string
+                        ruleName:
+                          description: RuleName is the network_policies map key.
+                          maxLength: 63
+                          minLength: 1
+                          type: string
+                      required:
+                      - binaryPath
+                      - ruleName
+                      type: object
+                    removeNetworkEndpoint:
+                      description: RemoveNetworkEndpoint deletes one endpoint from
+                        a network policy.
+                      properties:
+                        host:
+                          description: Host of the endpoint to remove. Matched case-insensitively.
+                          maxLength: 253
+                          minLength: 1
+                          type: string
+                        port:
+                          description: Port of the endpoint to remove.
+                          format: int32
+                          maximum: 65535
+                          minimum: 1
+                          type: integer
+                        ruleName:
+                          description: RuleName is the network_policies map key.
+                          maxLength: 63
+                          minLength: 1
+                          type: string
+                      required:
+                      - host
+                      - port
+                      - ruleName
+                      type: object
+                    removeNetworkRule:
+                      description: RemoveNetworkRule deletes a whole network_policies
+                        entry.
+                      properties:
+                        ruleName:
+                          description: RuleName is the network_policies map key to
+                            delete.
+                          maxLength: 63
+                          minLength: 1
+                          type: string
+                      required:
+                      - ruleName
+                      type: object
+                  type: object
+                maxItems: 32
+                minItems: 1
+                type: array
+                x-kubernetes-list-type: atomic
+              principal:
+                description: |-
+                  Principal identifies the submitter, e.g. the sandbox ID or the traffic
+                  token subject the proposal was filed on behalf of.
+                maxLength: 256
+                type: string
+              rationale:
+                description: |-
+                  Rationale is the submitting agent's explanation of why the rules are
+                  needed. Surfaced to the reviewer with the risk findings.
+                maxLength: 4096
+                type: string
+              securityProfileRef:
+                description: |-
+                  SecurityProfileRef names the SecurityProfile in the proposal's
+                  namespace whose embedded OpenShell document the operations amend.
+                maxLength: 253
+                minLength: 1
+                type: string
+            required:
+            - operations
+            - securityProfileRef
+            type: object
+          status:
+            description: PolicyProposalStatus is the most recently observed status
+              of a proposal.
+            properties:
+              applicationError:
+                description: |-
+                  ApplicationError records why a prover-clean proposal could not be
+                  applied: invalid operations, missing target, or a stale baseline. Kept
+                  separate from the operator's rejection reason, mirroring OpenShell's
+                  PolicyChunk split.
+                type: string
+              appliedRevision:
+                description: |-
+                  AppliedRevision is the OpenShell policy revision the approval produced
+                  on the target SecurityProfile.
+                format: int64
+                type: integer
+              appliedTime:
+                description: AppliedTime is when the merged document was written to
+                  the profile.
+                format: date-time
+                type: string
+              candidatePolicyHash:
+                description: |-
+                  CandidatePolicyHash is the sha256 of the canonical JSON of the merged
+                  candidate document computed at admission.
+                maxLength: 71
+                type: string
+              currentPolicyHash:
+                description: |-
+                  CurrentPolicyHash is the sha256 of the canonical JSON of the target
+                  document observed at admission. At apply time the live document must
+                  still hash to this value, mirroring OpenShell's review token: a
+                  proposal built against a stale baseline fails instead of merging into
+                  an unknown document.
+                maxLength: 71
+                type: string
+              decidedBy:
+                description: DecidedBy records who approved or rejected the proposal.
+                type: string
+              decidedTime:
+                description: DecidedTime is when the decision was recorded.
+                format: date-time
+                type: string
+              decision:
+                description: |-
+                  Decision records the operator's ruling. "okactl policy approve/reject"
+                  writes it through the status subresource; the controller applies it
+                  exactly once. It lives in status, not spec, so a ruling does not bump
+                  metadata.generation: the generation tracks the agent-authored proposal
+                  content, and admission (which pins the baseline the ruling is validated
+                  against) is re-run only when that content changes — mirroring
+                  OpenShell's review token.
+                properties:
+                  action:
+                    description: Action approves or rejects the proposal.
+                    enum:
+                    - approve
+                    - reject
+                    type: string
+                  decidedBy:
+                    description: DecidedBy records who ruled, e.g. the operator's
+                      username.
+                    maxLength: 256
+                    type: string
+                  reason:
+                    description: |-
+                      Reason accompanies the ruling. For rejections it is surfaced back to
+                      the submitting agent so it can revise the proposal, mirroring
+                      OpenShell's rejection_reason.
+                    maxLength: 2048
+                    type: string
+                required:
+                - action
+                type: object
+              findings:
+                description: |-
+                  Findings are the risk-check results recorded at admission. Empty means
+                  no runnable check flagged the proposal.
+                items:
+                  description: |-
+                    PolicyFinding is one risk-check finding, mirroring OpenShell's prover
+                    finding categories. Findings are categorical, not severity-graded: the
+                    reviewer reads the category and evidence and decides.
+                  properties:
+                    description:
+                      description: Description explains what the category means in
+                        this context.
+                      type: string
+                    evidence:
+                      description: |-
+                        Evidence lists the concrete paths through which the property was
+                        observed.
+                      items:
+                        description: PolicyFindingPath is the concrete evidence of
+                          one finding.
+                        properties:
+                          binary:
+                            description: |-
+                              Binary is the executable gaining the property, when the policy binds
+                              binaries.
+                            maxLength: 4096
+                            type: string
+                          host:
+                            description: Host of the endpoint the finding refers to.
+                            maxLength: 253
+                            type: string
+                          method:
+                            description: |-
+                              Method is the HTTP method the finding refers to; populated only for
+                              capability_expansion evidence.
+                            maxLength: 16
+                            type: string
+                          policy:
+                            description: Policy is the network_policies map key the
+                              endpoint belongs to.
+                            maxLength: 63
+                            type: string
+                          port:
+                            description: Port of the endpoint the finding refers to.
+                            format: int32
+                            maximum: 65535
+                            minimum: 1
+                            type: integer
+                        type: object
+                      maxItems: 256
+                      type: array
+                      x-kubernetes-list-type: atomic
+                    query:
+                      description: |-
+                        Query is the finding category, one of OpenShell's prover categories
+                        (link_local_reach, credential_reach_expansion, capability_expansion,
+                        l7_bypass_credentialed).
+                      maxLength: 64
+                      minLength: 1
+                      type: string
+                    remediation:
+                      description: Remediation suggests how to avoid the finding.
+                      items:
+                        type: string
+                      maxItems: 16
+                      type: array
+                      x-kubernetes-list-type: atomic
+                    title:
+                      description: Title is a one-line summary for the review card.
+                      maxLength: 256
+                      type: string
+                  required:
+                  - query
+                  type: object
+                maxItems: 64
+                type: array
+                x-kubernetes-list-type: atomic
+              observedGeneration:
+                description: ObservedGeneration is the generation most recently admitted.
+                format: int64
+                type: integer
+              phase:
+                description: Phase is the proposal lifecycle phase.
+                type: string
+              rejectionReason:
+                description: |-
+                  RejectionReason is the operator-supplied reason, surfaced back to the
+                  submitting agent so it can revise the proposal.
+                type: string
+              unchecked:
+                description: |-
+                  Unchecked lists the risk categories that could not be evaluated. The
+                  three credential-scoped OpenShell categories are always listed until
+                  the credential model lands.
+                items:
+                  description: |-
+                    PolicyUncheckedCheck names a risk category this data plane cannot evaluate
+                    yet. Unchecked categories are always recorded explicitly — a proposal never
+                    silently passes a check that was not run.
+                  properties:
+                    category:
+                      description: Category is the OpenShell prover finding category
+                        that was not checked.
+                      maxLength: 64
+                      minLength: 1
+                      type: string
+                    reason:
+                      description: Reason explains what the check requires that is
+                        not modeled yet.
+                      type: string
+                  required:
+                  - category
+                  type: object
+                maxItems: 16
+                type: array
+                x-kubernetes-list-type: atomic
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

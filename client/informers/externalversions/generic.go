@@ -60,6 +60,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Api().V1alpha1().GlobalSecurityProfiles().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("globaltrafficpolicies"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Api().V1alpha1().GlobalTrafficPolicies().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("policyproposals"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Api().V1alpha1().PolicyProposals().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("poolautoscalers"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Api().V1alpha1().PoolAutoscalers().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("sandboxes"):

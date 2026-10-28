@@ -96,6 +96,7 @@ func main() {
 	var pprofAddr string
 	var allowPrivileged bool
 	var metricLabelsAllowlist string
+	var enforceBlocksEnabled bool
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
@@ -128,6 +129,10 @@ func main() {
 		"supporting three states: ip, memory, and filesystem. Format: comma-separated, e.g.: memory,filesystem")
 	flag.StringVar(&metricLabelsAllowlist, "metric-labels-allowlist", "",
 		"Comma-separated list of Sandbox label keys to expose as sandbox_labels metric labels (e.g., app,env,version)")
+	flag.BoolVar(&enforceBlocksEnabled, "enforce-blocks-enabled", true,
+		"If true, the PolicyProposal controller refuses proposals whose documents the restricted REST/L7 "+
+			"contract cannot execute. Disable only for preview deployments: approved proposals would then be "+
+			"published to a data plane that does not enforce them.")
 	flag.StringVar(&runtimeClientCertDir, "runtime-client-cert-dir", "",
 		"Directory holding the agent-runtime client TLS material (ca.crt, client.crt, client.key). "+
 			"When set, the controller reaches TLS-capable agent-runtimes over HTTPS and advertises the runtime "+
@@ -362,10 +367,12 @@ func main() {
 
 	setupLog.Info("setup controllers",
 		"metricsAsyncWorkers", metricsAsyncWorkers,
-		"metricsAsyncQueueCap", metricsAsyncQueueCap)
+		"metricsAsyncQueueCap", metricsAsyncQueueCap,
+		"policyProposalEnforceBlocks", enforceBlocksEnabled)
 	if err = controller.SetupWithManager(mgr, controller.Deps{
-		MetricsCleanup:   metricsGC,
-		RuntimeTLSBundle: runtimeTLSBundle,
+		MetricsCleanup:                   metricsGC,
+		RuntimeTLSBundle:                 runtimeTLSBundle,
+		PolicyProposalAllowUnenforceable: !enforceBlocksEnabled,
 	}); err != nil {
 		setupLog.Error(err, "unable to setup controllers")
 		os.Exit(1)

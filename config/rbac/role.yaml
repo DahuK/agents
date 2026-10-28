@@ -100,6 +100,7 @@ rules:
   - agents.kruise.io
   resources:
   - commits/status
+  - policyproposals/status
   - poolautoscalers/status
   - sandboxclaims/status
   - sandboxes/status
@@ -109,6 +110,17 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - agents.kruise.io
+  resources:
+  - policyproposals
+  - securityprofiles
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - agents.kruise.io
   resources:

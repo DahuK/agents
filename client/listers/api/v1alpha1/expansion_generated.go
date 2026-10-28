@@ -41,6 +41,14 @@ type GlobalSecurityProfileListerExpansion interface{}
 // GlobalTrafficPolicyLister.
 type GlobalTrafficPolicyListerExpansion interface{}
 
+// PolicyProposalListerExpansion allows custom methods to be added to
+// PolicyProposalLister.
+type PolicyProposalListerExpansion interface{}
+
+// PolicyProposalNamespaceListerExpansion allows custom methods to be added to
+// PolicyProposalNamespaceLister.
+type PolicyProposalNamespaceListerExpansion interface{}
+
 // PoolAutoscalerListerExpansion allows custom methods to be added to
 // PoolAutoscalerLister.
 type PoolAutoscalerListerExpansion interface{}

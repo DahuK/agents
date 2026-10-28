@@ -564,14 +564,52 @@ type AuditAction struct {
 	Webhook *AuditWebhook `json:"webhook"`
 }
 
-// SecurityRuleActions defines the actions executed by one matching rule.
-// Actions run in this order: Bypass, Block, MCPToolPolicy,
-// HeaderManipulation, and TokenTransformation. Audit actions are emitted
-// asynchronously after the request is resolved.
+// OpenShellPolicyAction enforces an approved OpenShell sandbox policy at L7.
 //
-// Bypass, Block, and a denying MCPToolPolicy stop the remaining actions and
-// rules. Non-terminal actions continue to the next configured action. Every
-// matching rule executes its own actions.
+// The policy document travels verbatim: no field of it is projected into the
+// SecurityProfile's own rule model, so the enforcement data plane evaluates
+// exactly what the OpenShell governance cluster approved. Requests the policy
+// does not admit terminate with OpenShell's structured denial body, whose
+// next_steps point back at the governance loop (see NextSteps).
+//
+// Terminal when the policy denies the request; non-terminal otherwise.
+type OpenShellPolicyAction struct {
+	// Policy is the OpenShell sandbox policy document (authored as YAML or
+	// JSON, stored canonically as JSON). The projecting adapter validates it
+	// with ParsePolicy; the data plane fails closed when it does not parse.
+	//
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Policy *runtime.RawExtension `json:"policy"`
+	// NextSteps supplies the remediation pointers embedded in denial bodies,
+	// so an agent denied by the policy can propose a revision through the
+	// OpenShell governance loop instead of failing opaque.
+	// +optional
+	NextSteps *OpenShellNextStepsConfig `json:"nextSteps,omitempty"`
+}
+
+// OpenShellNextStepsConfig supplies the remediation pointers embedded in the
+// next_steps array of OpenShell denial bodies.
+type OpenShellNextStepsConfig struct {
+	// ProposalURL is the OpenShell governance-cluster endpoint agents POST
+	// policy proposals to (SubmitPolicyAnalysis).
+	// +optional
+	// +kubebuilder:validation:MaxLength=2048
+	ProposalURL string `json:"proposalURL,omitempty"`
+	// SkillPath is the on-filesystem policy-advisor skill location, when the
+	// runtime installs one.
+	// +optional
+	// +kubebuilder:validation:MaxLength=2048
+	SkillPath string `json:"skillPath,omitempty"`
+}
+
+// SecurityRuleActions defines the actions executed by one matching rule.
+// Actions run in this order: Bypass, Block, OpenShellPolicy,
+// MCPToolPolicy, HeaderManipulation, and TokenTransformation. Audit
+// actions are emitted asynchronously after the request is resolved.
+//
+// Bypass, Block, and a denying OpenShellPolicy or MCPToolPolicy stop the
+// remaining actions and rules. Non-terminal actions continue to the next
+// configured action. Every matching rule executes its own actions.
 type SecurityRuleActions struct {
 	// Block is a terminal action that returns a configured HTTP response
 	// to the client without forwarding upstream.
@@ -590,6 +628,12 @@ type SecurityRuleActions struct {
 	// denied.
 	// +optional
 	MCPToolPolicy *MCPToolPolicySpec `json:"mcpToolPolicy,omitempty"`
+	// OpenShellPolicy enforces an approved OpenShell sandbox policy at L7.
+	// Non-terminal when the policy admits the request; terminal (like Block)
+	// when denied, returning OpenShell's structured denial body to the
+	// client.
+	// +optional
+	OpenShellPolicy *OpenShellPolicyAction `json:"openShellPolicy,omitempty"`
 	// HeaderManipulation sets or removes plaintext request headers.
 	// Non-terminal. Values are stored verbatim — use TokenTransformation
 	// for credentials.

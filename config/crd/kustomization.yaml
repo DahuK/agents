@@ -6,6 +6,7 @@ resources:
 - bases/agents.kruise.io_commits.yaml
 - bases/agents.kruise.io_globalsecurityprofiles.yaml
 - bases/agents.kruise.io_globaltrafficpolicies.yaml
+- bases/agents.kruise.io_policyproposals.yaml
 - bases/agents.kruise.io_poolautoscalers.yaml
 - bases/agents.kruise.io_sandboxclaims.yaml
 - bases/agents.kruise.io_sandboxes.yaml

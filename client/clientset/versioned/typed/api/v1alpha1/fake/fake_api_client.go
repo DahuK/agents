@@ -43,6 +43,10 @@ func (c *FakeApiV1alpha1) GlobalTrafficPolicies() v1alpha1.GlobalTrafficPolicyIn
 	return newFakeGlobalTrafficPolicies(c)
 }
 
+func (c *FakeApiV1alpha1) PolicyProposals(namespace string) v1alpha1.PolicyProposalInterface {
+	return newFakePolicyProposals(c, namespace)
+}
+
 func (c *FakeApiV1alpha1) PoolAutoscalers(namespace string) v1alpha1.PoolAutoscalerInterface {
 	return newFakePoolAutoscalers(c, namespace)
 }

@@ -86,6 +86,11 @@ func TestResolveSecurityRules_InlineJSON(t *testing.T) {
 			expectError: "mcpToolPolicy is not supported",
 		},
 		{
+			name:        "openShellPolicy rejected",
+			raw:         `[{"name":"r1","match":[{"domains":["a.example.com"]}],"actions":{"openShellPolicy":{"policy":{"version":1}}}}]`,
+			expectError: "openShellPolicy is not supported",
+		},
+		{
 			name:        "audit rejected",
 			raw:         `[{"name":"r1","match":[{"domains":["a.example.com"]}],"actions":{"headerManipulation":{"set":[{"name":"X-A","value":"1"}]},"audit":[{"name":"log"}]}}]`,
 			expectError: "audit is not supported",

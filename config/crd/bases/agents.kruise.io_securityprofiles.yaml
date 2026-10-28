@@ -547,6 +547,42 @@ spec:
                           - defaultAction
                           - rules
                           type: object
+                        openShellPolicy:
+                          description: |-
+                            OpenShellPolicy enforces an approved OpenShell sandbox policy at L7.
+                            Non-terminal when the policy admits the request; terminal (like Block)
+                            when denied, returning OpenShell's structured denial body to the
+                            client.
+                          properties:
+                            nextSteps:
+                              description: |-
+                                NextSteps supplies the remediation pointers embedded in denial bodies,
+                                so an agent denied by the policy can propose a revision through the
+                                OpenShell governance loop instead of failing opaque.
+                              properties:
+                                proposalURL:
+                                  description: |-
+                                    ProposalURL is the OpenShell governance-cluster endpoint agents POST
+                                    policy proposals to (SubmitPolicyAnalysis).
+                                  maxLength: 2048
+                                  type: string
+                                skillPath:
+                                  description: |-
+                                    SkillPath is the on-filesystem policy-advisor skill location, when the
+                                    runtime installs one.
+                                  maxLength: 2048
+                                  type: string
+                              type: object
+                            policy:
+                              description: |-
+                                Policy is the OpenShell sandbox policy document (authored as YAML or
+                                JSON, stored canonically as JSON). The projecting adapter validates it
+                                with ParsePolicy; the data plane fails closed when it does not parse.
+                              type: object
+                              x-kubernetes-preserve-unknown-fields: true
+                          required:
+                          - policy
+                          type: object
                         tokenTransformation:
                           description: |-
                             TokenTransformation rewrites request credentials.

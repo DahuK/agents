@@ -1,0 +1,59 @@
+# Test fixture modeled on OpenShell's
+# examples/agent-driven-policy-management/policy.template.yaml (network
+# sections) plus endpoints that exercise every mapper and evaluator branch:
+# an audit-mode endpoint, a non-rest protocol, and an explicit deny rule.
+
+version: 1
+
+filesystem_policy:
+  include_workdir: true
+  read_only: [/usr, /lib, /proc]
+  read_write: [/sandbox, /tmp]
+
+landlock:
+  compatibility: best_effort
+
+network_policies:
+  codex:
+    name: codex
+    endpoints:
+      - { host: api.openai.com, port: 443, protocol: rest, enforcement: enforce, access: full }
+    binaries:
+      - { path: /usr/bin/codex }
+      - { path: "/usr/lib/node_modules/@openai/**" }
+
+  github_api_readonly:
+    name: github-api-readonly
+    endpoints:
+      - host: api.github.com
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        access: read-only
+    binaries:
+      - { path: /usr/bin/curl }
+
+  github_raw_scoped:
+    name: github-raw-scoped
+    endpoints:
+      - host: raw.githubusercontent.com
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        rules:
+          - allow:
+              method: GET
+              path: /github/rest-api-description/main/README.md
+          - deny:
+              method: GET
+              path: /github/rest-api-description/main/secrets/**
+
+  metrics_sink:
+    name: metrics-sink
+    endpoints:
+      - { host: metrics.internal, port: 443, protocol: rest, enforcement: audit, access: full }
+
+  registry_mirror:
+    name: registry-mirror
+    endpoints:
+      - { host: registry.internal, port: 5000, protocol: http, enforcement: enforce, access: full }

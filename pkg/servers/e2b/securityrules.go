@@ -417,6 +417,9 @@ func validateRuleActions(ruleIdx int, actions *agentsv1alpha1.SecurityRuleAction
 	if actions.MCPToolPolicy != nil {
 		return fmt.Errorf("%s.mcpToolPolicy is not supported in inline rules", path)
 	}
+	if actions.OpenShellPolicy != nil {
+		return fmt.Errorf("%s.openShellPolicy is not supported in inline rules", path)
+	}
 	if len(actions.Audit) > 0 {
 		return fmt.Errorf("%s.audit is not supported in inline rules", path)
 	}
@@ -424,6 +427,7 @@ func validateRuleActions(ruleIdx int, actions *agentsv1alpha1.SecurityRuleAction
 	rest.Bypass = false
 	rest.TokenTransformation = nil
 	rest.MCPToolPolicy = nil
+	rest.OpenShellPolicy = nil
 	rest.Audit = nil
 	rest.Block = nil
 	rest.HeaderManipulation = nil
